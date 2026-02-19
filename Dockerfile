@@ -1,12 +1,16 @@
 FROM node:bookworm-slim
-ENV NODE_ENV=production
 
+ENV NODE_ENV=production
 WORKDIR /app
 
-COPY ["package.json", "./"]
-
-RUN npm install
-
+# Copy all files (not just package.json)
 COPY . .
 
-CMD [ "node", "index.js" ]
+# Install dependencies
+RUN npm install
+
+# Expose the port Northflank uses
+EXPOSE 8080
+
+# Start your app
+CMD ["node", "index.js"]
