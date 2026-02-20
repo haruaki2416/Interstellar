@@ -47,6 +47,14 @@
     gtag("config", "G-WKJQ5QHQTJ")
   </script>
   <!-- DO NOT REMOVE-->
+  <script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js", {
+      scope: "/"
+    });
+  }
+</script>
+
 </body>
 
 </html>
