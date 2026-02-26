@@ -1,8 +1,5 @@
 // index-3.js (Scramjet version)
 
-// Scramjet does NOT use UV service workers, so remove registration entirely.
-
-// Detect if running inside /d
 let xl;
 
 try {
@@ -19,7 +16,7 @@ const form = document.getElementById("fv");
 const input = document.getElementById("input");
 
 if (form && input) {
-  form.addEventListener("submit", async event => {
+  form.addEventListener("submit", event => {
     event.preventDefault();
     try {
       if (xl) processUrl(input.value, "");
@@ -35,22 +32,17 @@ function processUrl(value, path) {
   const engine = localStorage.getItem("engine");
   const searchUrl = engine ? engine : "https://duckduckgo.com/?q=";
 
-  // Build full URL
   if (!isUrl(url)) {
     url = searchUrl + url;
   } else if (!(url.startsWith("https://") || url.startsWith("http://"))) {
     url = `https://${url}`;
   }
 
-  // Scramjet uses normal encodeURIComponent
   const encoded = encodeURIComponent(url);
-
-  // Save for other pages if needed
   sessionStorage.setItem("GoUrl", encoded);
 
   const dy = localStorage.getItem("dy");
 
-  // Scramjet routing
   if (dy === "true") {
     window.location.href = `/scramjet/${encoded}`;
   } else if (path) {
@@ -73,8 +65,5 @@ function dy(value) {
 }
 
 function isUrl(val = "") {
-  if (/^http(s?):\/\//.test(val) || (val.includes(".") && val.substr(0, 1) !== " ")) {
-    return true;
-  }
-  return false;
+  return /^http(s?):\/\//.test(val) || (val.includes(".") && val[0] !== " ");
 }
