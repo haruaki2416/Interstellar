@@ -1,10 +1,8 @@
-// index.js
-window.addEventListener("load", () => {
-  navigator.serviceWorker.register("../sw.js?v=2025-04-15", {
-    scope: "/a/",
-  });
-});
+// index-3.js (Scramjet version)
 
+// Scramjet does NOT use UV service workers, so remove registration entirely.
+
+// Detect if running inside /d
 let xl;
 
 try {
@@ -31,26 +29,34 @@ if (form && input) {
     }
   });
 }
+
 function processUrl(value, path) {
   let url = value.trim();
   const engine = localStorage.getItem("engine");
   const searchUrl = engine ? engine : "https://duckduckgo.com/?q=";
 
+  // Build full URL
   if (!isUrl(url)) {
     url = searchUrl + url;
   } else if (!(url.startsWith("https://") || url.startsWith("http://"))) {
     url = `https://${url}`;
   }
 
-  sessionStorage.setItem("GoUrl", __uv$config.encodeUrl(url));
+  // Scramjet uses normal encodeURIComponent
+  const encoded = encodeURIComponent(url);
+
+  // Save for other pages if needed
+  sessionStorage.setItem("GoUrl", encoded);
+
   const dy = localStorage.getItem("dy");
 
+  // Scramjet routing
   if (dy === "true") {
-    window.location.href = `/a/q/${__uv$config.encodeUrl(url)}`;
+    window.location.href = `/scramjet/${encoded}`;
   } else if (path) {
     location.href = path;
   } else {
-    window.location.href = `/a/${__uv$config.encodeUrl(url)}`;
+    window.location.href = `/scramjet/${encoded}`;
   }
 }
 
@@ -63,7 +69,7 @@ function blank(value) {
 }
 
 function dy(value) {
-  processUrl(value, `/a/q/${__uv$config.encodeUrl(value)}`);
+  processUrl(value, `/scramjet/${encodeURIComponent(value)}`);
 }
 
 function isUrl(val = "") {
