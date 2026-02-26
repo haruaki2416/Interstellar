@@ -30,12 +30,14 @@
       </div>
     </div>
   </div>
+
   <script src="assets/js/index-3.js"></script>
   <script src="/assets/js/h1.js"></script>
   <script src="./assets/mathematics/bundle.js?v=2025-04-15"></script>
   <script src="./assets/mathematics/config.js?v=2025-04-15"></script>
   <script src="/assets/js/m1.js"></script>
-  <!-- DO NOT REMOVE-->
+
+  <!-- DO NOT REMOVE -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-WKJQ5QHQTJ"></script>
   <script>
     window.dataLayer = window.dataLayer || []
@@ -43,17 +45,18 @@
       dataLayer.push(arguments)
     }
     gtag("js", new Date())
-
     gtag("config", "G-WKJQ5QHQTJ")
   </script>
-  <!-- DO NOT REMOVE-->
+  <!-- DO NOT REMOVE -->
+
+  <!-- FIXED SERVICE WORKER REGISTRATION FOR GITHUB PAGES -->
   <script>
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/sw.js", {
-      scope: "/"
-    });
-  }
-</script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js", {
+        scope: "./"
+      });
+    }
+  </script>
 
 </body>
 
