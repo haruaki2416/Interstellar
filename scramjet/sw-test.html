@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Service Worker Test</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      background: #f4f4f4;
+    }
+    pre {
+      background: #fff;
+      padding: 1rem;
+      border: 1px solid #ccc;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧪 Service Worker Test</h1>
+  <pre id="output">Checking...</pre>
+  <script>
+    const out = document.getElementById('output');
+    if ('serviceWorker' in navigator) {
+      out.textContent = '✅ Service workers are supported.\n';
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => {
+          out.textContent += '✅ Registered: ' + reg.scope;
+        })
+        .catch(err => {
+          out.textContent += '❌ Registration failed:\n' + err;
+        });
+    } else {
+      out.textContent = '❌ Service workers NOT supported.';
+    }
+  </script>
+</body>
+</html>
