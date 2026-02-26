@@ -24,7 +24,7 @@
     const out = document.getElementById('output');
     if ('serviceWorker' in navigator) {
       out.textContent = '✅ Service workers are supported.\n';
-      navigator.serviceWorker.register('sw.js')
+      navigator.serviceWorker.register('/scramjet/sw.js', { scope: '/scramjet/' })
         .then(reg => {
           out.textContent += '✅ Registered: ' + reg.scope;
         })
