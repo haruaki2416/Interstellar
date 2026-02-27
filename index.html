@@ -55,5 +55,32 @@
   <script src="/scramjet/config.js"></script>
   <script src="/scramjet/ui.js"></script>
 
+  <!-- Service Worker + Form Handler -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').then(() => {
+        console.log('✅ Service worker registered');
+      }).catch(err => {
+        console.error('❌ Service worker registration failed:', err);
+      });
+    }
+
+    document.getElementById('fv').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const input = document.getElementById('input').value.trim();
+      if (!input) return;
+
+      let url;
+      try {
+        url = new URL(input);
+      } catch {
+        url = new URL('http://' + input);
+      }
+
+      const encodedUrl = __uv$config.encodeUrl(url.toString());
+      location.href = __uv$config.prefix + encodedUrl;
+    });
+  </script>
+
 </body>
 </html>
