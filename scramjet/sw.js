@@ -1,8 +1,22 @@
+importScripts('/scramjet/uv.bundle.js');
+importScripts('/scramjet/uv.config.js');
+
 self.addEventListener('install', event => {
-  console.log('Dummy SW installed');
-  self.skipWaiting();
+  event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', event => {
-  console.log('Dummy SW activated');
+  event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url);
+
+  if (
+    self.__uv$config &&
+    self.__uv$config.prefix &&
+    url.pathname.startsWith(self.__uv$config.prefix)
+  ) {
+    event.respondWith(self.__uv$config.fetch(event));
+  }
 });
