@@ -5,5 +5,9 @@ self.__uv$config = {
   decodeUrl: Ultraviolet.codec.xor.decode,
   bundle: '/scramjet/bundle.js',
   config: '/scramjet/config.js',
-  fetch: (request) => Ultraviolet.fetch(request),
 };
+
+// Defer fetch assignment until UV is ready
+Ultraviolet.ready.then(() => {
+  self.__uv$config.fetch = (request) => Ultraviolet.fetch(request);
+});
