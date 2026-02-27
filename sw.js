@@ -17,17 +17,6 @@ self.addEventListener('fetch', event => {
     self.__uv$config.prefix &&
     url.pathname.startsWith(self.__uv$config.prefix)
   ) {
-    const debugHtml = `
-      <html>
-        <body>
-          <h1>🛠️ Intercepted by Service Worker!</h1>
-          <p><strong>URL:</strong> ${url.href}</p>
-          <p><strong>Prefix matched:</strong> ${self.__uv$config.prefix}</p>
-        </body>
-      </html>
-    `;
-    event.respondWith(new Response(debugHtml, {
-      headers: { 'Content-Type': 'text/html' }
-    }));
+    event.respondWith(self.__uv$config.fetch(event));
   }
 });
