@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Unregister SW</title>
+  </head>
+  <body>
+    <h1>🧹 Unregistering Service Workers...</h1>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          if (registrations.length === 0) {
+            document.body.innerHTML += "<p>✅ No service workers found.</p>";
+          } else {
+            registrations.forEach(reg => reg.unregister());
+            document.body.innerHTML += `<p>🧨 Unregistered ${registrations.length} service worker(s).</p>`;
+          }
+        }).catch(err => {
+          document.body.innerHTML += `<p>❌ Error: ${err}</p>`;
+        });
+      } else {
+        document.body.innerHTML += "<p>❌ Service workers not supported.</p>";
+      }
+    </script>
+  </body>
+</html>
