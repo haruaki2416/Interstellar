@@ -1,5 +1,5 @@
-importScripts('/scramjet/uv.bundle.js');
-importScripts('/scramjet/uv.config.js');
+importScripts('/scramjet/bundle.js');
+importScripts('/scramjet/config.js');
 
 self.addEventListener('install', event => {
   event.waitUntil(self.skipWaiting());
