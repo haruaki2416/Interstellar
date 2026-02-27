@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <h1>SW Test</h1>
+    <script>
+      navigator.serviceWorker.register("/sw.js").then(() => {
+        document.body.innerHTML += "<p>✅ Service worker registered</p>";
+      }).catch(err => {
+        document.body.innerHTML += "<p>❌ Failed to register: " + err + "</p>";
+      });
+    </script>
+  </body>
+</html>
