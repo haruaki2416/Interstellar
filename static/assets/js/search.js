@@ -220,23 +220,42 @@ function isValidUrl(val = "") {
     return new TextDecoder().decode(bytes);
   }
 
+  function reportClientDiagnostic(event, details = {}) {
+    fetch("/__debug/wisp/client", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        event: String(event).slice(0, 80),
+        details,
+        page: location.pathname,
+        userAgent: navigator.userAgent.slice(0, 220),
+        timestamp: new Date().toISOString(),
+      }),
+      keepalive: true,
+      cache: "no-store",
+    }).catch(() => {});
+  }
+
   const wispReachable = url =>
     new Promise(resolve => {
       let socket;
-      const done = ok => {
+      let settled = false;
+      const started = Date.now();
+      const done = (ok, reason) => {
+        if (settled) return;
+        settled = true;
         clearTimeout(timer);
-        try {
-          socket?.close();
-        } catch {}
-        resolve(ok);
+        try { socket?.close(); } catch {}
+        resolve({ ok, reason, elapsedMs: Date.now() - started });
       };
-      const timer = setTimeout(() => done(false), 5000);
+      const timer = setTimeout(() => done(false, "timeout"), 5000);
       try {
         socket = new WebSocket(url);
-        socket.onopen = () => done(true);
-        socket.onerror = () => done(false);
-      } catch {
-        done(false);
+        socket.onopen = () => done(true, "open");
+        socket.onerror = () => done(false, "error");
+        socket.onclose = event => done(false, "closed:" + event.code);
+      } catch (error) {
+        done(false, String(error?.message ?? error).slice(0, 180));
       }
     });
 
@@ -247,7 +266,7 @@ function isValidUrl(val = "") {
     for (const list of lists) {
       if (!list.length) continue;
       const reachable = await Promise.all(list.map(wispReachable));
-      const index = reachable.indexOf(true);
+      const index = reachable.findIndex(result => result.ok);
       if (index >= 0) return list[index];
     }
     return all[0];
@@ -260,11 +279,9 @@ function isValidUrl(val = "") {
 
     // A stale custom endpoint should never take down the default same-origin Wisp.
     if (custom && /^wss?:\/\//i.test(custom) && custom !== local) {
-      if (await wispReachable(custom)) {
-        console.info("[WISP] Custom endpoint passed the WebSocket probe:", custom);
-        return custom;
-      }
-      console.warn("[WISP] Custom endpoint failed; falling back to this server:", custom);
+      const result = await wispReachable(custom);
+      reportClientDiagnostic("Custom Wisp probe", { endpoint: custom, ...result });
+      if (result.ok) return custom;
     }
 
     if (BUILT_WISP) {
@@ -273,23 +290,16 @@ function isValidUrl(val = "") {
     }
 
     const reachable = await wispReachable(local);
-    if (reachable) {
-      console.info("[WISP] Same-origin WebSocket endpoint is reachable:", local);
-      return local;
-    }
-
-    console.error("[WISP] Same-origin endpoint did not open:", local);
+    reportClientDiagnostic("Same-origin Wisp probe", { endpoint: local, ...reachable });
+    if (reachable.ok) return local;
 
     // Railway's edge may forward the WebSocket request without the hop-by-hop
     // Upgrade headers. Fall back to the public Wisp endpoint documented by
     // MercuryWorkshop so the browser can connect directly to a Wisp server.
     const publicFallback = "wss://wisp.mercurywork.shop/";
-    if (await wispReachable(publicFallback)) {
-      console.warn("[WISP] Using public fallback endpoint:", publicFallback);
-      return publicFallback;
-    }
-
-    console.error("[WISP] Public fallback endpoint also failed:", publicFallback);
+    const fallback = await wispReachable(publicFallback);
+    reportClientDiagnostic("Public fallback Wisp probe", { endpoint: publicFallback, ...fallback });
+    if (fallback.ok) return publicFallback;
     return local;
   }
 
@@ -344,6 +354,7 @@ function isValidUrl(val = "") {
       await ensureTransport(connection, vendor.libcurl, [{ websocket: wisp }], `${vendor.libcurl}|${wisp}`);
     } else {
       await ensureTransport(connection, vendor.epoxy, [{ wisp }], `${vendor.epoxy}|${wisp}|block-aware`, blockAwareEpoxy(vendor.epoxy));
+    reportClientDiagnostic("Epoxy transport configured", { endpoint: wisp });
     }
 
     window.__urls = {
@@ -358,6 +369,9 @@ function isValidUrl(val = "") {
       await init();
     } catch (error) {
       console.error("Scramjet transport failed to start:", error);
+      reportClientDiagnostic("Scramjet transport initialization failed", {
+        error: String(error?.stack ?? error?.message ?? error).slice(0, 1200),
+      });
     }
   }
 
