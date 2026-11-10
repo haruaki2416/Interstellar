@@ -45,8 +45,9 @@ window.addEventListener("load", async () => {
   }
 
   try {
-    const registration = await navigator.serviceWorker.register("../sw.js", {
-      scope: "/uv/",
+    // The worker must control app pages to intercept their /uv/ proxy requests.
+    const registration = await navigator.serviceWorker.register("/sw.js", {
+      scope: "/",
     });
 
     if (registration.active) {
