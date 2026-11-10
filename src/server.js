@@ -214,9 +214,29 @@ server.on("request", (req, res) => {
 const WISP_PATH = vendorMap?.wisp ?? "/wisp/";
 
 server.on("upgrade", (req, socket, head) => {
-  if (NETLIFY) return socket.destroy();
-  if (masqr && masqr.isGated(req) && !masqr.isAuthorized(req)) return socket.destroy();
-  if (new URL(req.url, "http://localhost").pathname !== WISP_PATH) return socket.destroy();
+  const pathname = new URL(req.url, "http://localhost").pathname;
+  const upgrade = req.headers.upgrade ?? "(missing)";
+  const connection = req.headers.connection ?? "(missing)";
+  const origin = req.headers.origin ? new URL(req.headers.origin).host : "(missing)";
+
+  console.log(chalk.cyan(
+    `[WISP] Upgrade request: method=${req.method} path=${pathname} upgrade=${upgrade} connection=${connection} origin=${origin} expected=${WISP_PATH}`
+  ));
+
+  if (NETLIFY) {
+    console.warn(chalk.yellow("[WISP] Rejected: server is running in Netlify mode."));
+    return socket.destroy();
+  }
+  if (masqr && masqr.isGated(req) && !masqr.isAuthorized(req)) {
+    console.warn(chalk.yellow("[WISP] Rejected: Masqr authorization required."));
+    return socket.destroy();
+  }
+  if (pathname !== WISP_PATH) {
+    console.warn(chalk.yellow(`[WISP] Rejected: path mismatch (${pathname} !== ${WISP_PATH}).`));
+    return socket.destroy();
+  }
+
+  console.log(chalk.green("[WISP] Upgrade accepted; passing connection to Wisp."));
   wisp.routeRequest(req, socket, head);
 });
 
