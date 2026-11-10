@@ -82,6 +82,8 @@ async function waitForServiceWorker() {
   }
 }
 
+window.__waitForServiceWorker = waitForServiceWorker;
+
 const form = document.getElementById("search-form");
 const input = document.getElementById("input");
 
