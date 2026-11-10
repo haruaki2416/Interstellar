@@ -32,12 +32,6 @@ function isTabsPage() {
 }
 
 window.addEventListener("load", async () => {
-  if (isTabsPage()) {
-    swReady = true;
-    swReadyResolve();
-    return;
-  }
-
   if (!("serviceWorker" in navigator)) {
     swReady = true;
     swReadyResolve();
@@ -45,40 +39,47 @@ window.addEventListener("load", async () => {
   }
 
   try {
-    // The worker must control app pages to intercept their /uv/ proxy requests.
+    // Register on every app page, including /tabs: that page also makes /uv/ requests.
     const registration = await navigator.serviceWorker.register("/sw.js", {
       scope: "/",
     });
+    await navigator.serviceWorker.ready;
 
-    if (registration.active) {
-      swReady = true;
-      swReadyResolve();
-      return;
-    }
-
-    const worker = registration.installing || registration.waiting;
-    if (worker) {
-      worker.addEventListener("statechange", function onStateChange() {
-        if (this.state === "activated") {
-          swReady = true;
-          swReadyResolve();
-          worker.removeEventListener("statechange", onStateChange);
+    // An active registration does not guarantee this document is controlled yet.
+    if (!navigator.serviceWorker.controller) {
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          navigator.serviceWorker.removeEventListener("controllerchange", onController);
+          reject(new Error("Service worker activated but did not take control of this page"));
+        }, 8000);
+        function onController() {
+          if (!navigator.serviceWorker.controller) return;
+          clearTimeout(timeout);
+          navigator.serviceWorker.removeEventListener("controllerchange", onController);
+          resolve();
         }
+        navigator.serviceWorker.addEventListener("controllerchange", onController);
+        onController();
       });
-    } else {
-      swReady = true;
-      swReadyResolve();
     }
+
+    console.info("[SW] page is controlled by", navigator.serviceWorker.controller?.scriptURL);
+    swReady = true;
+    swReadyResolve();
   } catch (err) {
-    console.error("[SW] registration failed:", err);
+    console.error("[SW] registration/control failed:", err);
     swReady = true;
     swReadyResolve();
   }
 });
 
 async function waitForServiceWorker() {
-  if (swReady) return;
-  await Promise.race([swReadyPromise, new Promise(resolve => setTimeout(resolve, 4000))]);
+  if (!swReady) {
+    await Promise.race([swReadyPromise, new Promise(resolve => setTimeout(resolve, 9000))]);
+  }
+  if ("serviceWorker" in navigator && !navigator.serviceWorker.controller) {
+    throw new Error("The service worker is not controlling this page; proxy navigation was stopped.");
+  }
 }
 
 const form = document.getElementById("search-form");
