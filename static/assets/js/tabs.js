@@ -344,7 +344,7 @@ function goForward() {
 }
 
 window.addEventListener("load", () => {
-  navigator.serviceWorker.register("../sw.js", { scope: "/uv/" }).catch(err => console.error("[SW] registration failed:", err));
+  // The root-scoped registration in search.js controls all proxy paths. Do not create a competing /uv/ registration.
 
   const form = document.getElementById("search-form");
   const input = document.getElementById("input");
@@ -360,6 +360,7 @@ window.addEventListener("load", () => {
   }
 
   async function navigateFrame(frame, url) {
+    if (window.__waitForServiceWorker) await window.__waitForServiceWorker();
     if (window.__settled) await window.__settled();
     const verdict = await window.blockPages.check(url);
     if (verdict) {
@@ -546,9 +547,12 @@ document.addEventListener("DOMContentLoaded", () => {
     iframeContainer.appendChild(newIframe);
 
     if (window.__settled) {
-      window.__settled().then(() => {
+      window.__settled().then(async () => {
+        if (src.startsWith("/uv/") && window.__waitForServiceWorker) {
+          await window.__waitForServiceWorker();
+        }
         newIframe.src = src;
-      });
+      }).catch(error => console.error("[SW] proxy frame navigation blocked:", error));
     } else {
       newIframe.src = src;
     }
