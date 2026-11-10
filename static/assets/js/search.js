@@ -273,10 +273,23 @@ function isValidUrl(val = "") {
     }
 
     const reachable = await wispReachable(local);
-    console[reachable ? "info" : "error"](
-      reachable ? "[WISP] Same-origin WebSocket endpoint is reachable:" : "[WISP] Same-origin WebSocket endpoint did not open:",
-      local,
-    );
+    if (reachable) {
+      console.info("[WISP] Same-origin WebSocket endpoint is reachable:", local);
+      return local;
+    }
+
+    console.error("[WISP] Same-origin endpoint did not open:", local);
+
+    // Railway's edge may forward the WebSocket request without the hop-by-hop
+    // Upgrade headers. Fall back to the public Wisp endpoint documented by
+    // MercuryWorkshop so the browser can connect directly to a Wisp server.
+    const publicFallback = "wss://wisp.mercurywork.shop/";
+    if (await wispReachable(publicFallback)) {
+      console.warn("[WISP] Using public fallback endpoint:", publicFallback);
+      return publicFallback;
+    }
+
+    console.error("[WISP] Public fallback endpoint also failed:", publicFallback);
     return local;
   }
 
