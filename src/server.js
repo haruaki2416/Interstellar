@@ -211,7 +211,29 @@ function recordWispDiagnostic(message, details = {}) {
 
 // Browser-readable diagnostics: open /__debug/wisp and inspect its Network response.
 app.get("/__debug/wisp", (_req, res) => {
-  res.set("Cache-Control", "no-store").json({ path: WISP_PATH, recentEvents: WISP_DIAGNOSTICS });
+  res.set("Cache-Control", "no-store").json({
+    path: WISP_PATH,
+    websocketHandler: !NETLIFY,
+    recentEvents: WISP_DIAGNOSTICS,
+  });
+});
+
+// A normal HTTP request to the Wisp URL is not a WebSocket upgrade. Return a
+// clear 426 response and record it instead of letting Express show the generic 404.
+app.get(WISP_PATH, (req, res) => {
+  const details = {
+    method: req.method,
+    path: req.path,
+    upgrade: req.headers.upgrade ?? "(missing)",
+    connection: req.headers.connection ?? "(missing)",
+    origin: req.headers.origin ? new URL(req.headers.origin).host : "(missing)",
+    wsVersion: req.headers["sec-websocket-version"] ?? "(missing)",
+  };
+  recordWispDiagnostic("HTTP request received instead of WebSocket upgrade", details);
+  res.status(426)
+    .set("Upgrade", "websocket")
+    .set("Cache-Control", "no-store")
+    .json({ error: "Wisp requires a WebSocket upgrade", received: details });
 });
 
 app.use((_req, res) => {
