@@ -259,7 +259,7 @@ function isValidUrl(val = "") {
     const custom = store.get("wisp-url")?.trim();
 
     // A stale custom endpoint should never take down the default same-origin Wisp.
-    if (custom && /^wss?:\\/\\//i.test(custom) && custom !== local) {
+    if (custom && /^wss?:\/\//i.test(custom) && custom !== local) {
       if (await wispReachable(custom)) {
         console.info("[WISP] Custom endpoint passed the WebSocket probe:", custom);
         return custom;
