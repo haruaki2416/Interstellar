@@ -200,6 +200,20 @@ routes.forEach(route => {
   });
 });
 
+const WISP_PATH = vendorMap?.wisp ?? "/wisp/";
+const WISP_DIAGNOSTICS = [];
+function recordWispDiagnostic(message, details = {}) {
+  const entry = { time: new Date().toISOString(), message, ...details };
+  WISP_DIAGNOSTICS.push(entry);
+  if (WISP_DIAGNOSTICS.length > 50) WISP_DIAGNOSTICS.shift();
+  console.log(chalk.cyan(`[WISP] ${message} ${JSON.stringify(details)}`));
+}
+
+// Browser-readable diagnostics: open /__debug/wisp and inspect its Network response.
+app.get("/__debug/wisp", (_req, res) => {
+  res.set("Cache-Control", "no-store").json({ path: WISP_PATH, recentEvents: WISP_DIAGNOSTICS });
+});
+
 app.use((_req, res) => {
   res.status(404).sendFile(path.join(SERVE_DIR, "404.html"));
 });
@@ -213,8 +227,6 @@ server.on("request", (req, res) => {
   app(req, res);
 });
 
-const WISP_PATH = vendorMap?.wisp ?? "/wisp/";
-
 server.on("upgrade", (req, socket, head) => {
   const pathname = new URL(req.url, "http://localhost").pathname;
   const upgrade = req.headers.upgrade ?? "(missing)";
@@ -223,35 +235,43 @@ server.on("upgrade", (req, socket, head) => {
   const protocolHeaderPresent = Boolean(req.headers["sec-websocket-protocol"]);
   const websocketVersion = req.headers["sec-websocket-version"] ?? "(missing)";
 
-  console.log(chalk.cyan(
-    `[WISP] Upgrade request: method=${req.method} rawUrl=${req.url} path=${pathname} upgrade=${upgrade} connection=${connection} origin=${origin} wsVersion=${websocketVersion} wsProtocolPresent=${protocolHeaderPresent} expected=${WISP_PATH}`
-  ));
+  recordWispDiagnostic("Upgrade request", {
+    method: req.method,
+    rawUrl: req.url,
+    path: pathname,
+    upgrade,
+    connection,
+    origin,
+    wsVersion: websocketVersion,
+    wsProtocolPresent: protocolHeaderPresent,
+    expected: WISP_PATH,
+  });
 
   socket.once("error", error => {
-    console.error(chalk.red(`[WISP] Socket error: ${error.message}`));
+    recordWispDiagnostic("Socket error", { error: error.message });
   });
   socket.once("close", hadError => {
-    console.log(chalk.gray(`[WISP] Socket closed; hadError=${hadError}`));
+    recordWispDiagnostic("Socket closed", { hadError });
   });
 
   if (NETLIFY) {
-    console.warn(chalk.yellow("[WISP] Rejected: server is running in Netlify mode."));
+    recordWispDiagnostic("Rejected: Netlify mode");
     return socket.destroy();
   }
   if (masqr && masqr.isGated(req) && !masqr.isAuthorized(req)) {
-    console.warn(chalk.yellow("[WISP] Rejected: Masqr authorization required."));
+    recordWispDiagnostic("Rejected: Masqr authorization required");
     return socket.destroy();
   }
   if (pathname !== WISP_PATH) {
-    console.warn(chalk.yellow(`[WISP] Rejected: path mismatch (${pathname} !== ${WISP_PATH}).`));
+    recordWispDiagnostic("Rejected: path mismatch", { path: pathname, expected: WISP_PATH });
     return socket.destroy();
   }
 
-  console.log(chalk.green("[WISP] Upgrade accepted; passing connection to Wisp."));
+  recordWispDiagnostic("Upgrade accepted; passing connection to Wisp");
   try {
     wisp.routeRequest(req, socket, head);
   } catch (error) {
-    console.error(chalk.red(`[WISP] routeRequest threw: ${error.stack ?? error.message}`));
+    recordWispDiagnostic("routeRequest threw", { error: error.stack ?? error.message });
     socket.destroy();
   }
 });
