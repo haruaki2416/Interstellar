@@ -234,6 +234,11 @@ app.get(WISP_PATH, (req, res) => {
     wsProtocolPresent: Boolean(req.headers["sec-websocket-protocol"]),
     forwardedProto: req.headers["x-forwarded-proto"] ?? "(missing)",
     forwardedHost: req.headers["x-forwarded-host"] ?? "(missing)",
+    railwayRequestId: req.headers["x-railway-request-id"] ?? "(missing)",
+    railwayEdge: req.headers["x-railway-edge"] ?? "(missing)",
+    secFetchMode: req.headers["sec-fetch-mode"] ?? "(missing)",
+    secFetchDest: req.headers["sec-fetch-dest"] ?? "(missing)",
+    userAgent: req.headers["user-agent"] ?? "(missing)",
     via: req.headers.via ?? "(missing)",
     headerNames: Object.keys(req.headers).sort(),
   };
