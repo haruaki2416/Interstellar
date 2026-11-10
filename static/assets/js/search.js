@@ -254,11 +254,30 @@ function isValidUrl(val = "") {
   }
 
   async function getWispUrl() {
-    const custom = store.get("wisp-url")?.trim();
-    if (custom && /^wss?:\/\//i.test(custom)) return custom;
-    if (BUILT_WISP) return pickBuiltWisp();
     const protocol = location.protocol === "https:" ? "wss" : "ws";
-    return `${protocol}://${location.host}/wisp/`;
+    const local = `${protocol}://${location.host}/wisp/`;
+    const custom = store.get("wisp-url")?.trim();
+
+    // A stale custom endpoint should never take down the default same-origin Wisp.
+    if (custom && /^wss?:\\/\\//i.test(custom) && custom !== local) {
+      if (await wispReachable(custom)) {
+        console.info("[WISP] Custom endpoint passed the WebSocket probe:", custom);
+        return custom;
+      }
+      console.warn("[WISP] Custom endpoint failed; falling back to this server:", custom);
+    }
+
+    if (BUILT_WISP) {
+      const built = await pickBuiltWisp();
+      if (built && await wispReachable(built)) return built;
+    }
+
+    const reachable = await wispReachable(local);
+    console[reachable ? "info" : "error"](
+      reachable ? "[WISP] Same-origin WebSocket endpoint is reachable:" : "[WISP] Same-origin WebSocket endpoint did not open:",
+      local,
+    );
+    return local;
   }
 
   function blockAwareEpoxy(transportPath) {
