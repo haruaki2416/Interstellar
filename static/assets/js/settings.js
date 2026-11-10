@@ -793,6 +793,7 @@ function toggleAB() {
 
 function changeEngine(dropdown) {
   const engineUrls = {
+    DuckDuckGo: "https://duckduckgo.com/?q=",
     Brave: "https://search.brave.com/search?q=",
     Google: "https://www.google.com/search?q=",
     Bing: "https://www.bing.com/search?q=",
