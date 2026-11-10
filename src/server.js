@@ -209,6 +209,26 @@ function recordWispDiagnostic(message, details = {}) {
   console.log(chalk.cyan(`[WISP] ${message} ${JSON.stringify(details)}`));
 }
 
+// Accept compact browser-side diagnostics so probe failures appear in Railway logs.
+if (!NETLIFY) app.post("/__debug/wisp/client", (req, res) => {
+  const event = typeof req.body?.event === "string" ? req.body.event.slice(0, 80) : "Client diagnostic";
+  const details = req.body?.details && typeof req.body.details === "object" ? req.body.details : {};
+  const safeDetails = {
+    endpoint: typeof details.endpoint === "string" ? details.endpoint.slice(0, 300) : undefined,
+    ok: typeof details.ok === "boolean" ? details.ok : undefined,
+    reason: typeof details.reason === "string" ? details.reason.slice(0, 180) : undefined,
+    elapsedMs: Number.isFinite(details.elapsedMs) ? Math.max(0, Math.min(details.elapsedMs, 60000)) : undefined,
+    error: typeof details.error === "string" ? details.error.slice(0, 1200) : undefined,
+  };
+  recordWispDiagnostic("Browser: " + event, {
+    ...safeDetails,
+    page: typeof req.body?.page === "string" ? req.body.page.slice(0, 120) : "/",
+    userAgent: typeof req.body?.userAgent === "string" ? req.body.userAgent.slice(0, 220) : "(missing)",
+    clientTime: typeof req.body?.timestamp === "string" ? req.body.timestamp.slice(0, 40) : "(missing)",
+  });
+  res.status(204).end();
+});
+
 // Browser-readable diagnostics: open /__debug/wisp and inspect its Network response.
 app.get("/__debug/wisp", (_req, res) => {
   res.set("Cache-Control", "no-store").json({
