@@ -224,10 +224,18 @@ app.get(WISP_PATH, (req, res) => {
   const details = {
     method: req.method,
     path: req.path,
+    httpVersion: req.httpVersion,
+    host: req.headers.host ?? "(missing)",
     upgrade: req.headers.upgrade ?? "(missing)",
     connection: req.headers.connection ?? "(missing)",
     origin: req.headers.origin ? new URL(req.headers.origin).host : "(missing)",
     wsVersion: req.headers["sec-websocket-version"] ?? "(missing)",
+    wsKeyPresent: Boolean(req.headers["sec-websocket-key"]),
+    wsProtocolPresent: Boolean(req.headers["sec-websocket-protocol"]),
+    forwardedProto: req.headers["x-forwarded-proto"] ?? "(missing)",
+    forwardedHost: req.headers["x-forwarded-host"] ?? "(missing)",
+    via: req.headers.via ?? "(missing)",
+    headerNames: Object.keys(req.headers).sort(),
   };
   recordWispDiagnostic("HTTP request received instead of WebSocket upgrade", details);
   res.status(426)
