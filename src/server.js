@@ -3,7 +3,7 @@ import http from "node:http";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { server as wisp } from "@mercuryworkshop/wisp-js/server";
+import { logging, server as wisp } from "@mercuryworkshop/wisp-js/server";
 import chalk from "chalk";
 import cookieParser from "cookie-parser";
 import express from "express";
@@ -73,6 +73,8 @@ function resolvePort() {
 }
 
 const PORT = resolvePort();
+
+if (process.env.WISP_DEBUG === "1") logging.set_level(logging.DEBUG);
 
 wisp.options.allow_loopback_ips = false;
 wisp.options.allow_private_ips = false;
@@ -218,10 +220,19 @@ server.on("upgrade", (req, socket, head) => {
   const upgrade = req.headers.upgrade ?? "(missing)";
   const connection = req.headers.connection ?? "(missing)";
   const origin = req.headers.origin ? new URL(req.headers.origin).host : "(missing)";
+  const protocolHeaderPresent = Boolean(req.headers["sec-websocket-protocol"]);
+  const websocketVersion = req.headers["sec-websocket-version"] ?? "(missing)";
 
   console.log(chalk.cyan(
-    `[WISP] Upgrade request: method=${req.method} path=${pathname} upgrade=${upgrade} connection=${connection} origin=${origin} expected=${WISP_PATH}`
+    `[WISP] Upgrade request: method=${req.method} rawUrl=${req.url} path=${pathname} upgrade=${upgrade} connection=${connection} origin=${origin} wsVersion=${websocketVersion} wsProtocolPresent=${protocolHeaderPresent} expected=${WISP_PATH}`
   ));
+
+  socket.once("error", error => {
+    console.error(chalk.red(`[WISP] Socket error: ${error.message}`));
+  });
+  socket.once("close", hadError => {
+    console.log(chalk.gray(`[WISP] Socket closed; hadError=${hadError}`));
+  });
 
   if (NETLIFY) {
     console.warn(chalk.yellow("[WISP] Rejected: server is running in Netlify mode."));
@@ -237,7 +248,12 @@ server.on("upgrade", (req, socket, head) => {
   }
 
   console.log(chalk.green("[WISP] Upgrade accepted; passing connection to Wisp."));
-  wisp.routeRequest(req, socket, head);
+  try {
+    wisp.routeRequest(req, socket, head);
+  } catch (error) {
+    console.error(chalk.red(`[WISP] routeRequest threw: ${error.stack ?? error.message}`));
+    socket.destroy();
+  }
 });
 
 server.on("listening", () => {
